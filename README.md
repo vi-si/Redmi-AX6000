@@ -31,7 +31,7 @@
 
 **覆写设置**
 
-Github 地址修改  https://cdn.jsdelivr.net/
+Github 地址修改 https://testingcf.jsdelivr.net/
 
 ✅ 自定义上游 DNS 服务器
 
