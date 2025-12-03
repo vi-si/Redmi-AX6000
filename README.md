@@ -83,21 +83,6 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 # 脚本开始，输出日志提示
 LOG_OUT "Tip: Start Add Custom Firewall Rules..."
 
-# --- 为中国大陆 IP 绕过代理添加新规则 ---
-
-# 在 'openclash' NAT 链和 'openclash_output' mangle 链的**最前面**插入规则 (-I)，
-# 如果目标 IP 属于 china_ip_route 或 china_ip6_route 集合，则立即跳出 RETURN，
-# 从而绕过 OpenClash 的后续代理规则。
-
-iptables -t nat -I openclash -m set --match-set china_ip_route dst -j RETURN
-iptables -t mangle -I openclash_output -m set --match-set china_ip_route dst -j RETURN
-# 注意：IPv6 命令使用 ip6tables
-ip6tables -t nat -I openclash -m set --match-set china_ip6_route dst -j RETURN
-ip6tables -t mangle -I openclash_output -m set --match-set china_ip6_route dst -j RETURN
-
-# --- 结束中国大陆 IP 绕过规则 ---
-
-
 # 确保删除命令不会因为规则不存在而报错，使用 2>/dev/null 隐藏错误输出，|| true 确保命令失败时脚本继续执行
 # 这一步清除了 OpenClash 默认设置的规则，为（可能存在的）自定义 TPROXY 规则让路
 iptables -t nat -D PREROUTING -p tcp -j openclash 2>/dev/null || true
