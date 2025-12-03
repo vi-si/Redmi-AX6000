@@ -77,16 +77,31 @@ Github 地址修改  https://cdn.jsdelivr.net/
   插件设置 开发者选项
 ```
 #!/bin/sh
+# 引入 OpenClash 的日志记录功能
 . /usr/share/openclash/log.sh
+# 引入 OpenWrt 的通用函数库
 . /lib/functions.sh
 
-# This script is called by /etc/init.d/openclash
-# Add your custom firewall rules here, they will be added after the end of the OpenClash iptables rules
-
+# 脚本开始，输出日志提示
 LOG_OUT "Tip: Start Add Custom Firewall Rules..."
 
-# 确保删除命令不会因为规则不存在而报错，使用 2>/dev/null
-# 这一步清除了 OpenClash 默认设置的规则，为自定义规则让路
+# --- 为中国大陆 IP 绕过代理添加新规则 ---
+
+# 在 'openclash' NAT 链和 'openclash_output' mangle 链的**最前面**插入规则 (-I)，
+# 如果目标 IP 属于 china_ip_route 或 china_ip6_route 集合，则立即跳出 RETURN，
+# 从而绕过 OpenClash 的后续代理规则。
+
+iptables -t nat -I openclash -m set --match-set china_ip_route dst -j RETURN
+iptables -t mangle -I openclash_output -m set --match-set china_ip_route dst -j RETURN
+# 注意：IPv6 命令使用 ip6tables
+ip6tables -t nat -I openclash -m set --match-set china_ip6_route dst -j RETURN
+ip6tables -t mangle -I openclash_output -m set --match-set china_ip6_route dst -j RETURN
+
+# --- 结束中国大陆 IP 绕过规则 ---
+
+
+# 确保删除命令不会因为规则不存在而报错，使用 2>/dev/null 隐藏错误输出，|| true 确保命令失败时脚本继续执行
+# 这一步清除了 OpenClash 默认设置的规则，为（可能存在的）自定义 TPROXY 规则让路
 iptables -t nat -D PREROUTING -p tcp -j openclash 2>/dev/null || true
 iptables -t nat -D OUTPUT -j openclash_output 2>/dev/null || true
 iptables -t mangle -D PREROUTING -p udp -j openclash 2>/dev/null || true
@@ -94,8 +109,8 @@ iptables -t mangle -D OUTPUT -p udp -j openclash_output 2>/dev/null || true
 
 # --- 自定义 TPROXY 逻辑实现 ---
 
-# 1. 确保自定义链存在并且是空的 (幂等操作)
-# 使用 -F 确保链是空的，使用 || true 防止链不存在时报错
+# 1. 确保自定义链存在并且是空的 (幂等操作：无论执行多少次，结果都一样)
+# 使用 -F 清空链，使用 || iptables -t mangle -N clash_tproxy 在链不存在时创建它
 iptables -t mangle -F clash_tproxy 2>/dev/null || iptables -t mangle -N clash_tproxy
 
 # 2. 添加必要的本地流量排除 (避免代理内部通信和组播)
@@ -103,22 +118,25 @@ iptables -t mangle -F clash_tproxy 2>/dev/null || iptables -t mangle -N clash_tp
 iptables -t mangle -A clash_tproxy -m set --match-set localnetwork dst -j RETURN
 iptables -t mangle -A clash_tproxy -d 224.0.0.0/4 -j RETURN # 排除组播地址
 
-# 3. 端口绕过逻辑 (根据您的需求，此逻辑保持不变)
-# 只有目标端口是 25, 53, 80, 443, 853 的流量才会继续往下走 TPROXY
+# 3. 端口绕过逻辑 (根据您的需求，此逻辑保持不变，目前被注释掉了)
+# 如果取消注释，只有目标端口是 25, 53, 80, 443, 853 的流量才会继续往下走 TPROXY
 # iptables -t mangle -A clash_tproxy -p tcp -m multiport ! --dport 25,53,80,443,853 -j RETURN
 # iptables -t mangle -A clash_tproxy -p udp -m multiport ! --dport 25,53,80,443,853 -j RETURN
 
-# 4. TPROXY 重定向和标记
+# 4. TPROXY 透明代理重定向和标记
+# 将符合条件的 UDP 和 TCP 流量重定向到本地 7895 端口，并打上 0x162 的标记
 iptables -t mangle -A clash_tproxy -p udp -j TPROXY --on-port 7895 --tproxy-mark 0x162
 iptables -t mangle -A clash_tproxy -p tcp -j TPROXY --on-port 7895 --tproxy-mark 0x162
 
 # 5. 将自定义链挂载到 PREROUTING
-# 这一步也需要保证幂等性，只添加一次
+# 这一步也保证幂等性，只添加一次：检查链是否存在 (-C)，如果不存在，则追加 (-A)
 if ! iptables -t mangle -C PREROUTING -j clash_tproxy >/dev/null 2>&1; then
     iptables -t mangle -A PREROUTING -j clash_tproxy
 fi
 
+# 脚本结束，输出日志提示
 LOG_OUT "Tip: Add Custom Firewall Rules Done."
 
 exit 0
+
 ```
