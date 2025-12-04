@@ -105,8 +105,8 @@ iptables -t mangle -N clash_tproxy
 iptables -t mangle -A clash_tproxy -m set --match-set localnetwork dst -j RETURN
 
 # 非以下端口的流量不会经过内核，可以自己定，比如BT，这些流量方便走FORWARD链能享受到flow offloading
-iptables -t mangle -A clash_tproxy -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
-iptables -t mangle -A clash_tproxy -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+# iptables -t mangle -A clash_tproxy -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+# iptables -t mangle -A clash_tproxy -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
 
 # 将所有剩余流量 TPROXY 到 7895 端口并打上标记
 iptables -t mangle -A clash_tproxy -p udp -j TPROXY --on-port 7895 --tproxy-mark 0x162
