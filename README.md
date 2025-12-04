@@ -87,7 +87,7 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 # 脚本开始，输出日志提示
 LOG_OUT "Tip: Start Add Custom Firewall Rules..."
 
-# 删除自带的规则（保持原样）
+# 删除自带的规则
 iptables -t nat -D PREROUTING -p tcp -j openclash
 iptables -t nat -D OUTPUT -j openclash_output
 iptables -t mangle -D PREROUTING -p udp -j openclash
