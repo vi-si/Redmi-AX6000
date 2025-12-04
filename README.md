@@ -79,15 +79,15 @@ Github 地址修改 https://testingcf.jsdelivr.net/
   插件设置 开发者选项
 ```
 #!/bin/sh
-# 引入 OpenClash 的日志记录功能
 . /usr/share/openclash/log.sh
-# 引入 OpenWrt 的通用函数库
 . /lib/functions.sh
 
-# 脚本开始，输出日志提示
+# This script is called by /etc/init.d/openclash
+# Add your custom firewall rules here, they will be added after the end of the OpenClash iptables rules
+
 LOG_OUT "Tip: Start Add Custom Firewall Rules..."
 
-# 删除自带的规则
+# 删除自带的规则（保持原样）
 iptables -t nat -D PREROUTING -p tcp -j openclash
 iptables -t nat -D OUTPUT -j openclash_output
 iptables -t mangle -D PREROUTING -p udp -j openclash
@@ -105,8 +105,8 @@ iptables -t mangle -N clash_tproxy
 iptables -t mangle -A clash_tproxy -m set --match-set localnetwork dst -j RETURN
 
 # 非以下端口的流量不会经过内核，可以自己定，比如BT，这些流量方便走FORWARD链能享受到flow offloading
-# iptables -t mangle -A clash_tproxy -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
-# iptables -t mangle -A clash_tproxy -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+iptables -t mangle -A clash_tproxy -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+iptables -t mangle -A clash_tproxy -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
 
 # 将所有剩余流量 TPROXY 到 7895 端口并打上标记
 iptables -t mangle -A clash_tproxy -p udp -j TPROXY --on-port 7895 --tproxy-mark 0x162
