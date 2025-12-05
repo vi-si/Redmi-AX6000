@@ -43,7 +43,7 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 
 ✅ NameServer
   - https://8.8.8.8/dns-query#⚡️ 国际代理
-  - https://208.67.222.222/dns-query#⚡️ 国际代理
+  - https://1.1.1.1/dns-query#⚡️ 国际代理
 
 ❌ FallBack
 
