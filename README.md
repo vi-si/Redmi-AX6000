@@ -39,17 +39,18 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 "geosite:cn,private": 
   - 运营商DNS
   - 119.29.29.29
-  - 223.5.5.5
+  - 223.6.6.6
 
 ✅ NameServer
-  - HTTPS://8.8.8.8/dns-query#⚡️ 国际代理
+  - https://8.8.8.8/dns-query#⚡️ 国际代理
+  - https://208.67.222.222/dns-query#⚡️ 国际代理
 
 ❌ FallBack
 
 ✅ Default-NameServer
   - 运营商DNS
   - 119.29.29.29
-  - 223.5.5.5
+  - 223.6.6.6
 
 ✅ 启用 TCP 并发
 ❌ Geodata 数据加载方式 禁用
