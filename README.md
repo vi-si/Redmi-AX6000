@@ -38,6 +38,8 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 ✅ Nameserver-Policy
 "geosite:cn,private": 
   - 运营商DNS
+  - 119.29.29.29
+  - 223.5.5.5
 
 ✅ NameServer
   - HTTPS://8.8.8.8/dns-query#⚡️ 国际代理
@@ -46,6 +48,8 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 
 ✅ Default-NameServer
   - 运营商DNS
+  - 119.29.29.29
+  - 223.5.5.5
 
 ✅ 启用 TCP 并发
 ❌ Geodata 数据加载方式 禁用
@@ -87,7 +91,7 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 
 LOG_OUT "Tip: Start Add Custom Firewall Rules..."
 
-# 删除自带的规则（保持原样）
+# 删除自带的规则
 iptables -t nat -D PREROUTING -p tcp -j openclash
 iptables -t nat -D OUTPUT -j openclash_output
 iptables -t mangle -D PREROUTING -p udp -j openclash
