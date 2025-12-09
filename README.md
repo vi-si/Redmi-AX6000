@@ -78,80 +78,28 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 **使用TProxy代理所有流量**
   插件设置 开发者选项
 ```
-#!/bin/sh
-. /usr/share/openclash/log.sh
-. /lib/functions.sh
+# 删除自带的规则
+iptables -t nat -D PREROUTING -p tcp -j openclash
+iptables -t nat -D OUTPUT -j openclash_output
+iptables -t mangle -D PREROUTING -p udp -j openclash
+iptables -t mangle -D OUTPUT -p udp -j openclash_output
 
-LOG_OUT "Tip: Start Add Custom Firewall Rules (Optimized)..."
+# 重置规则
+iptables -t mangle -F PREROUTING
+iptables -t mangle -F clash_tproxy
+iptables -t mangle -N clash_tproxy
 
-# ========== 配置区 ==========
-TPROXY_PORT=7895
-MARK=0x162        # 必须和 Clash 配置文件里 proxy-providers 的 mark 一致
-MANGLE_CHAIN="CLASH_TPROXY"
-LAN_IFACE="br-lan"   # 根据你的实际情况修改，一般是 br-lan
-# ============================
+iptables -t mangle -A clash_tproxy -m set --match-set localnetwork dst -j RETURN
 
-# 彻底清理旧规则
-delete_old_rules() {
-    ip_tables="iptables ip6tables"
-    for tbl in $ip_tables; do
-        # 删除可能的跳链
-        $tbl -t nat -D PREROUTING -j openclash 2>/dev/null
-        $tbl -t nat -D OUTPUT -j openclash_output 2>/dev/null
-        $tbl -t mangle -D PREROUTING -j "$MANGLE_CHAIN" 2>/dev/null
-        $tbl -t mangle -D OUTPUT -j "$MANGLE_CHAIN" 2>/dev/null
-        $tbl -t mangle -F "$MANGLE_CHAIN" 2>/dev/null
-        $tbl -t mangle -X "$MANGLE_CHAIN" 2>/dev/null
-    done
+# 非以下端口的流量不会经过内核，可以自己定，比如BT，这些流量方便走FORWARD链能享受到flow offloading
+iptables -t mangle -A clash_tproxy -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+iptables -t mangle -A clash_tproxy -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
 
-    # 清理 OpenClash 自带的链（可选，防止残留）
-    iptables -t nat -F openclash 2>/dev/null
-    iptables -t nat -X openclash 2>/dev/null
-    iptables -t nat -F openclash_output 2>/dev/null
-    iptables -t nat -X openclash_output 2>/dev/null
-}
+iptables -t mangle -A clash_tproxy -p udp -j TPROXY --on-port 7895 --tproxy-mark 0x162
+iptables -t mangle -A clash_tproxy -p tcp -j TPROXY --on-port 7895 --tproxy-mark 0x162
 
-add_tproxy_rules() {
-    ip_tables="iptables"
-    [ "$(uci get firewall.@defaults[0].ipv6 2>/dev/null)" = "1" ] && ip_tables="iptables ip6tables"
 
-    for tbl in $ip_tables; do
-        # 创建自定义链
-        $tbl -t mangle -N "$MANGLE_CHAIN" 2>/dev/null
-
-        # 1. 已经打过 mark 的包直接返回（防止 Clash 自身环路）
-        $tbl -t mangle -A "$MANGLE_CHAIN" -m mark --mark "$MARK" -j RETURN
-
-        # 2. 本地回环流量直接返回
-        $tbl -t mangle -A "$MANGLE_CHAIN" -i lo -j RETURN
-
-        # 3. 来自 LAN 界面但目的是本路由器的流量直接返回（访问 LuCI、SSH 等）
-        $tbl -t mangle -A "$MANGLE_CHAIN" -i "$LAN_IFACE" -d 192.168.0.0/16 -j RETURN
-        $tbl -t mangle -A "$MANGLE_CHAIN" -i "$LAN_IFACE" -d 172.16.0.0/12 -j RETURN
-        $tbl -t mangle -A "$MANGLE_CHAIN" -i "$LAN_IFACE" -d 10.0.0.0/8 -j RETURN
-
-        # 4. ipset 排除中国大陆直连 IP（localnetwork 通常是这个）
-        $tbl -t mangle -A "$MANGLE_CHAIN" -m set --match-set localnetwork dst -j RETURN
-
-        # 5. 可选：某些端口走直连（比如 53 可防止某些运营商 DNS 被干扰）
-        # $tbl -t mangle -A "$MANGLE_CHAIN" -p udp --dport 53 -j RETURN
-
-        # 6. 剩余流量全部 TPROXY
-        $tbl -t mangle -A "$MANGLE_CHAIN" -p tcp -j TPROXY --on-port "$TPROXY_PORT" --tproxy-mark "$MARK"
-        $tbl -t mangle -A "$MANGLE_CHAIN" -p udp -j TPROXY --on-port "$TPROXY_PORT" --tproxy-mark "$MARK"
-
-        # 插入跳链（插在第 2 位，留给 OpenClash 的 DNS 劫持规则第一位）
-        $tbl -t mangle -I PREROUTING 2 -j "$MANGLE_CHAIN"
-
-        # 路由器自己发出的包也需要走代理（重要！）
-        $tbl -t mangle -I OUTPUT 1 -j "$MANGLE_CHAIN"
-    done
-}
-
-delete_old_rules
-add_tproxy_rules
-
-LOG_OUT "Tip: Custom TPROXY Firewall Rules Added Successfully."
+iptables -t mangle -A PREROUTING -j clash_tproxy
 
 exit 0
 
