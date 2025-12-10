@@ -107,12 +107,8 @@ iptables -t mangle -A clash_tproxy_v4 -d 192.168.0.0/16 -j RETURN
 iptables -t mangle -A clash_tproxy_v4 -d 10.0.0.0/8 -j RETURN
 
 # 列表中的端口才会继续执行 TPROXY
-# iptables -t mangle -A clash_tproxy_v4 -p tcp -m multiport ! --dport 21,22,80,143,443,587,853,993 -j RETURN
-# iptables -t mangle -A clash_tproxy_v4 -p udp -m multiport ! --dport 21,22,80,143,443,587,853,993 -j RETURN
-
-# 明确排除 53 端口（无论 TCP 还是 UDP），使其直接 RETURN（不走 TPROXY）
-iptables -t mangle -A clash_tproxy_v4 -p tcp --dport 53 -j RETURN
-iptables -t mangle -A clash_tproxy_v4 -p udp --dport 53 -j RETURN
+# iptables -t mangle -A clash_tproxy_v4 -p tcp -m multiport ! --dport 21,22,53,80,143,443,587,853,993 -j RETURN
+# iptables -t mangle -A clash_tproxy_v4 -p udp -m multiport ! --dport 21,22,53,80,143,443,587,853,993 -j RETURN
 
 # 使用 TPROXY 将所有剩余流量转发到 Clash 端口
 iptables -t mangle -A clash_tproxy_v4 -p udp -j TPROXY --on-port ${CLASH_PORT} --tproxy-mark ${CLASH_MARK}
@@ -137,12 +133,8 @@ ip6tables -t mangle -A clash_tproxy_v6 -d fe80::/10 -j RETURN
 # 如果您有特定的 ULA (Unique Local Address) 前缀 (fc00::/7)，也可以添加
 
 # 列表中的端口才会继续执行 TPROXY
-# ip6tables -t mangle -A clash_tproxy_v6 -p tcp -m multiport ! --dport 21,22,80,143,443,587,853,993 -j RETURN
-# ip6tables -t mangle -A clash_tproxy_v6 -p udp -m multiport ! --dport 21,22,80,143,443,587,853,993 -j RETURN
-
-# 明确排除 53 端口（无论 TCP 还是 UDP），使其直接 RETURN（不走 TPROXY）
-ip6tables -t mangle -A clash_tproxy_v6 -p tcp --dport 53 -j RETURN
-ip6tables -t mangle -A clash_tproxy_v6 -p udp --dport 53 -j RETURN
+# ip6tables -t mangle -A clash_tproxy_v6 -p tcp -m multiport ! --dport 21,22,53,80,143,443,587,853,993 -j RETURN
+# ip6tables -t mangle -A clash_tproxy_v6 -p udp -m multiport ! --dport 21,22,53,80,143,443,587,853,993 -j RETURN
 
 # 使用 TPROXY 将所有剩余 IPv6 流量转发到 Clash 端口
 ip6tables -t mangle -A clash_tproxy_v6 -p udp -j TPROXY --on-port ${CLASH_PORT} --tproxy-mark ${CLASH_MARK}
