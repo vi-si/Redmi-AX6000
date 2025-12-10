@@ -14,7 +14,11 @@
 
 ✅ 路由本机代理
 ✅ 禁用 QUIC
-✅ 绕过服务器地址
+❌ 绕过服务器地址
+
+✅ 仅允许内网
+    WAN 接口名称 eth1
+    LAN 接口名称 br-lan
 
 ✅ 本地 DNS 劫持 使用 Dnsmasq 转发
 ✅ 禁止 Dnsmasq 缓存 DNS
