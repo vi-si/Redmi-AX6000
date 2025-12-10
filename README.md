@@ -108,8 +108,8 @@ iptables -t mangle -A clash_tproxy_v4 -d 10.0.0.0/8 -j RETURN
 
 # 排除特定的重要端口，这些流量可以走 FORWARD 链以享受 flow offloading
 # 例如 DNS(53), HTTP(80), HTTPS(443), SMTP 等
-# iptables -t mangle -A clash_tproxy_v4 -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
-# iptables -t mangle -A clash_tproxy_v4 -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+iptables -t mangle -A clash_tproxy_v4 -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+iptables -t mangle -A clash_tproxy_v4 -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
 
 # 使用 TPROXY 将所有剩余流量转发到 Clash 端口
 iptables -t mangle -A clash_tproxy_v4 -p udp -j TPROXY --on-port ${CLASH_PORT} --tproxy-mark ${CLASH_MARK}
