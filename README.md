@@ -78,29 +78,75 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 **使用TProxy代理所有流量**
   插件设置 开发者选项
 ```
-# 删除自带的规则
-iptables -t nat -D PREROUTING -p tcp -j openclash
-iptables -t nat -D OUTPUT -j openclash_output
-iptables -t mangle -D PREROUTING -p udp -j openclash
-iptables -t mangle -D OUTPUT -p udp -j openclash_output
+#!/bin/sh
+. /usr/share/openclash/log.sh
+. /lib/functions.sh
 
-# 重置规则
+LOG_OUT "Tip: Start Add Custom Firewall Rules (Hardcoded CIDR v4/v6)..."
+
+# 定义 Clash TPROXY 监听端口和 Mark 标记
+CLASH_PORT=7895
+CLASH_MARK=0x162
+
+# --- IPv4 规则 ---
+# 删除 OpenClash 可能已添加的默认 IPv4 规则
+iptables -t nat -D PREROUTING -p tcp -j openclash 2>/dev/null
+iptables -t nat -D OUTPUT -j openclash_output 2>/dev/null
+iptables -t mangle -D PREROUTING -p udp -j openclash 2>/dev/null
+iptables -t mangle -D OUTPUT -p udp -j openclash_output 2>/dev/null
+
+# 清理并创建自定义的 IPv4 mangle 链
 iptables -t mangle -F PREROUTING
-iptables -t mangle -F clash_tproxy
-iptables -t mangle -N clash_tproxy
+iptables -t mangle -F clash_tproxy_v4
+iptables -t mangle -N clash_tproxy_v4
 
-iptables -t mangle -A clash_tproxy -m set --match-set localnetwork dst -j RETURN
+# 排除本地网络流量，使其不走代理（根据您的实际网络环境修改）
+# 常见的局域网段包括 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12
+iptables -t mangle -A clash_tproxy_v4 -d 127.0.0.0/8 -j RETURN
+iptables -t mangle -A clash_tproxy_v4 -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A clash_tproxy_v4 -d 10.0.0.0/8 -j RETURN
 
-# 非以下端口的流量不会经过内核，可以自己定，比如BT，这些流量方便走FORWARD链能享受到flow offloading
-iptables -t mangle -A clash_tproxy -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
-iptables -t mangle -A clash_tproxy -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+# 排除特定的重要端口，这些流量可以走 FORWARD 链以享受 flow offloading
+# 例如 DNS(53), HTTP(80), HTTPS(443), SMTP 等
+# iptables -t mangle -A clash_tproxy_v4 -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+# iptables -t mangle -A clash_tproxy_v4 -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
 
-iptables -t mangle -A clash_tproxy -p udp -j TPROXY --on-port 7895 --tproxy-mark 0x162
-iptables -t mangle -A clash_tproxy -p tcp -j TPROXY --on-port 7895 --tproxy-mark 0x162
+# 使用 TPROXY 将所有剩余流量转发到 Clash 端口
+iptables -t mangle -A clash_tproxy_v4 -p udp -j TPROXY --on-port ${CLASH_PORT} --tproxy-mark ${CLASH_MARK}
+iptables -t mangle -A clash_tproxy_v4 -p tcp -j TPROXY --on-port ${CLASH_PORT} --tproxy-mark ${CLASH_MARK}
 
+# 将自定义链加入 PREROUTING
+iptables -t mangle -A PREROUTING -j clash_tproxy_v4
 
-iptables -t mangle -A PREROUTING -j clash_tproxy
+# --- IPv6 规则 ---
+# 删除 OpenClash 可能已添加的默认 IPv6 规则
+ip6tables -t mangle -D PREROUTING -p udp -j openclash 2>/dev/null
+ip6tables -t mangle -D OUTPUT -p udp -j openclash_output 2>/dev/null
+
+# 清理并创建自定义的 IPv6 mangle 链
+ip6tables -t mangle -F PREROUTING
+ip6tables -t mangle -F clash_tproxy_v6
+ip6tables -t mangle -N clash_tproxy_v6
+
+# 排除本地网络 IPv6 流量（本地链接 fe80::/10 和回环 ::1/128）
+ip6tables -t mangle -A clash_tproxy_v6 -d ::1/128 -j RETURN
+ip6tables -t mangle -A clash_tproxy_v6 -d fe80::/10 -j RETURN
+# 如果您有特定的 ULA (Unique Local Address) 前缀 (fc00::/7)，也可以添加
+
+# 排除特定 IPv6 端口（同 IPv4 逻辑）
+# ip6tables -t mangle -A clash_tproxy_v6 -p tcp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+# ip6tables -t mangle -A clash_tproxy_v6 -p udp -m multiport ! --dport 25,53,80,143,443,587,993 -j RETURN
+
+# 使用 TPROXY 将所有剩余 IPv6 流量转发到 Clash 端口
+ip6tables -t mangle -A clash_tproxy_v6 -p udp -j TPROXY --on-port ${CLASH_PORT} --tproxy-mark ${CLASH_MARK}
+ip6tables -t mangle -A clash_tproxy_v6 -p tcp -j TPROXY --on-port ${CLASH_PORT} --tproxy-mark ${CLASH_MARK}
+
+# 将自定义 IPv6 链加入 PREROUTING
+ip6tables -t mangle -A PREROUTING -j clash_tproxy_v6
+
+LOG_OUT "Tip: Add Custom Firewall Rules finished."
 
 exit 0
+
 
 ```
