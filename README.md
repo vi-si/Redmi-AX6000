@@ -54,7 +54,7 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 ✅ 启用 GeoIP Dat 版数据库
 ✅ 启用流量（域名）探测
 ✅ 探测（嗅探）纯 IP 连接
-✅ 自定义流量探测（嗅探）设置
+❌ 自定义流量探测（嗅探）设置
 
 ```
 **IPV6 设置**
