@@ -53,7 +53,7 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 ❌ Geodata 数据加载方式 禁用
 ✅ 启用 GeoIP Dat 版数据库
 ✅ 启用流量（域名）探测
-❌ 探测（嗅探）纯 IP 连接
+✅ 探测（嗅探）纯 IP 连接
 ❌ 自定义流量探测（嗅探）设置
 
 ```
@@ -76,6 +76,9 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 ✅ RA 标记 无
 
 ```
+
+**开发者选项”使用的前提是，“必须关闭 Dnsmasq 自带的 DNS 重定向 功能**
+**该功能位于 网络 > DHCP/DNS 页面中，务必关闭，若不关闭，会引起 DNS 解析问题**
 
 **使用TProxy代理所有流量**
   插件设置 开发者选项
