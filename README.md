@@ -16,9 +16,8 @@
 ✅ 禁用 QUIC
 ❌ 绕过服务器地址
 
-✅ 仅允许内网
-    WAN 接口名称 eth1
-    LAN 接口名称 br-lan
+❌ 仅允许内网
+LAN 接口名称 禁用
 
 ✅ 本地 DNS 劫持 使用 Dnsmasq 转发
 ✅ 禁止 Dnsmasq 缓存 DNS
@@ -40,27 +39,22 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 ✅ 自定义上游 DNS 服务器
 
 ✅ Nameserver-Policy
-"geosite:cn,private": 
-  - 运营商DNS
-  - tls://223.6.6.6
+"geosite:cn": [运营商DNS]
 
 ✅ NameServer
   - https://8.8.8.8/dns-query#⚡️ 国际代理
-  - https://8.8.4.4/dns-query#⚡️ 国际代理
 
 ❌ FallBack
 
 ✅ Default-NameServer
-  - 运营商DNS
-  - tls://223.6.6.6
-    ✅ 节点域名解析
+ - 运营商DNS
 
 ✅ 启用 TCP 并发
 ❌ Geodata 数据加载方式 禁用
 ✅ 启用 GeoIP Dat 版数据库
-✅ 启用流量（域名）探测
-✅ 探测（嗅探）纯 IP 连接
-✅ 自定义流量探测（嗅探）设置
+❌ 启用流量（域名）探测
+❌ 探测（嗅探）纯 IP 连接
+❌ 自定义流量探测（嗅探）设置
 
 ```
 **IPV6 设置**
@@ -106,6 +100,7 @@ iptables -t mangle -F PREROUTING
 iptables -t mangle -F clash_tproxy
 iptables -t mangle -N clash_tproxy
 
+iptables -t mangle -A clash_tproxy -p udp -m udp --sport 53 -j RETURN
 iptables -t mangle -A clash_tproxy -m set --match-set localnetwork dst -j RETURN
 
 # 非以下端口的流量不会经过内核，可以自己定，比如BT，这些流量方便走FORWARD链能享受到flow offloading
