@@ -78,7 +78,7 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 ```
 
 **开发者选项”使用的前提是，“必须关闭 Dnsmasq 自带的 DNS 重定向 功能**
-**务必关闭，若不关闭，会引起 DNS 解析问题**
+务必关闭，若不关闭，会引起 DNS 解析问题
 
 **使用TProxy代理所有流量**
   插件设置 开发者选项
