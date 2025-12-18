@@ -48,6 +48,7 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 
 ✅ Default-NameServer
  - 运营商DNS
+    ✅ 直连域名解析
 
 ✅ 启用 TCP 并发
 ❌ Geodata 数据加载方式 禁用
