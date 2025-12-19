@@ -104,7 +104,7 @@ iptables -t mangle -F PREROUTING
 iptables -t mangle -F clash_tproxy
 iptables -t mangle -N clash_tproxy
 
-iptables -t mangle -A clash_tproxy -p udp -m udp --sport 53 -j RETURN
+# iptables -t mangle -A clash_tproxy -p udp -m udp --sport 53 -j RETURN
 iptables -t mangle -A clash_tproxy -m set --match-set localnetwork dst -j RETURN
 
 # 非以下端口的流量不会经过内核，可以自己定，比如BT，这些流量方便走FORWARD链能享受到flow offloading
