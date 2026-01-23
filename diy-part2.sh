@@ -15,15 +15,13 @@ sed -i 's/192.168.1.1/192.168.6.1/g' package/base-files/files/bin/config_generat
 
 # ---------------------------------------------------------------
 ## OpenClash
-git clone -b v0.46.014 --depth=1 https://github.com/vernesong/openclash.git OpenClash
+git clone -b v0.46.014-beta --depth=1 https://github.com/vernesong/openclash.git OpenClash
 rm -rf feeds/luci/applications/luci-app-openclash
 mv OpenClash/luci-app-openclash feeds/luci/applications/luci-app-openclash
 # ---------------------------------------------------------------
 
 # ##------------- meta core ---------------------------------
 wget https://github.com/MetaCubeX/mihomo/releases/download/v1.19.1/mihomo-linux-arm64-v1.19.1.gz
-
-
 gzip -d mihomo-linux-arm64-v1.19.1.gz
 chmod +x mihomo-linux-arm64-v1.19.1 >/dev/null 2>&1
 mkdir -p feeds/luci/applications/luci-app-openclash/root/etc/openclash/core
