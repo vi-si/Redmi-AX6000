@@ -7,7 +7,7 @@
 ```
 **插件设置**
 
-✅ 运行模式 Redir-Host（兼容）模式
+✅ 运行模式 Fake-IP（增强）模式
 
 ✅ UDP 流量转发
 
@@ -38,6 +38,8 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 
 ✅ 自定义上游 DNS 服务器
 
+✅ Fake-IP 地址范围 (IPv4 Cidr) 198.18.0.1/16
+
 ✅ Nameserver-Policy
 "geosite:cn": [运营商DNS]
 
@@ -48,14 +50,15 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 
 ✅ Default-NameServer
  - 运营商DNS
-    ✅ 直连域名解析
+    ✅ 节点域名解析
 
 ✅ 启用 TCP 并发
+TCP Keep-alive 间隔（s）1800
 ❌ Geodata 数据加载方式 禁用
 ✅ 启用 GeoIP Dat 版数据库
 ✅ 启用流量（域名）探测
 ✅ 探测（嗅探）纯 IP 连接
-❌ 自定义流量探测（嗅探）设置
+✅ 自定义流量探测（嗅探）设置
 
 ```
 **IPV6 设置**
