@@ -12,21 +12,17 @@
 
 # Modify default IP
 sed -i 's/192.168.1.1/192.168.6.1/g' package/base-files/files/bin/config_generate
-
 # ---------------------------------------------------------------
 ## OpenClash
-git clone -b v0.46.064 --depth=1 https://github.com/vernesong/openclash.git OpenClash
+git clone -b v0.46.014 --depth=1 https://github.com/vernesong/openclash.git OpenClash
 rm -rf feeds/luci/applications/luci-app-openclash
 mv OpenClash/luci-app-openclash feeds/luci/applications/luci-app-openclash
 # ---------------------------------------------------------------
 
-# ##------------- meta core ---------------------------------
-wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.5/mihomo-linux-arm64-v1.18.5.gz
-
-gzip -d mihomo-linux-arm64-v1.18.5.gz
-chmod +x mihomo-linux-arm64-v1.18.5 >/dev/null 2>&1
-mkdir -p feeds/luci/applications/luci-app-openclash/root/etc/openclash/core
-mv mihomo-linux-arm64-v1.18.5 feeds/luci/applications/luci-app-openclash/root/etc/openclash/core/clash_meta >/dev/null 2>&1
+# ##------------- core ---------------------------------
+wget https://github.com/vi-si/Redmi-AX6000/tree/4cc1be39f54bc1f3a80d02fba2b170e0c644281a/core
+mkdir -p feeds/luci/applications/luci-app-openclash/root/etc/openclash
+mv core feeds/luci/applications/luci-app-openclash/root/etc/openclash/ >/dev/null 2>&1
 # ##---------------------------------------------------------
 
 # ##-------------- GeoIP 数据库 -----------------------------
