@@ -21,11 +21,11 @@ mv OpenClash/luci-app-openclash feeds/luci/applications/luci-app-openclash
 # ---------------------------------------------------------------
 
 # ##------------- meta core ---------------------------------
-wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.5/mihomo-linux-arm64-v1.18.5.gz
-gzip -d mihomo-linux-arm64-v1.18.5.gz
-chmod +x mihomo-linux-arm64-v1.18.5 >/dev/null 2>&1
+wget https://github.com/MetaCubeX/mihomo/releases/download/v1.19.2/mihomo-linux-arm64-v1.19.2.gz
+gzip -d mihomo-linux-arm64-v1.19.2.gz
+chmod +x mihomo-linux-arm64-v1.19.2 >/dev/null 2>&1
 mkdir -p feeds/luci/applications/luci-app-openclash/root/etc/openclash/core
-mv mihomo-linux-arm64-v1.18.5 feeds/luci/applications/luci-app-openclash/root/etc/openclash/core/clash_meta >/dev/null 2>&1
+mv mihomo-linux-arm64-v1.19.2 feeds/luci/applications/luci-app-openclash/root/etc/openclash/core/clash_meta >/dev/null 2>&1
 # ##---------------------------------------------------------
 
 # ##-------------- GeoIP 数据库 -----------------------------
