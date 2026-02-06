@@ -29,20 +29,23 @@ Github 地址修改 https://testingcf.jsdelivr.net/
 "geosite:cn": [运营商DNS]
 
 ✅ NameServer
-  - https://8.8.8.8/dns-query#⚡️ 国际代理
-
+      8.8.8.8/dns-query#⚡️ 国际代理
+      1.1.1.1/dns-query#⚡️ 国际代理
 ❌ FallBack
 
 ✅ Default-NameServer
- - 运营商DNS
-    ✅ 节点域名解析
+      119.29.29.29
+        ✅ 节点域名解析
+      223.5.5.5
+        ✅ 节点域名解析
+
 
 ✅ 启用 TCP 并发
 TCP Keep-alive 间隔（s）1800
 ❌ Geodata 数据加载方式 禁用
 ✅ 启用 GeoIP Dat 版数据库
-✅ 启用流量（域名）探测
-✅ 探测（嗅探）纯 IP 连接
+❌ ✅ 启用流量（域名）探测
+❌ ✅ 探测（嗅探）纯 IP 连接
 
 
 exit 0
