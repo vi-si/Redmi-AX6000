@@ -40,9 +40,9 @@ mv -f /tmp/GeoSite.dat feeds/luci/applications/luci-app-openclash/root/etc/openc
 
 
 # ===============================================================
-# Tailscale - 修复版（使用 GITHUB_WORKSPACE/files 目录，解决路径问题）
+# Tailscale - 最终修复版（使用 files/ 目录 + 避免 uci 在编译时执行）
 # ===============================================================
-echo "========== Starting Tailscale integration (arm64) - Fixed Version =========="
+echo "========== Starting Tailscale integration (arm64) - Final Fixed Version =========="
 
 # 1. 获取最新稳定版本
 TS_VERSION=$(curl -s https://pkgs.tailscale.com/stable/ | grep -oE 'tailscale_[0-9]+\.[0-9]+\.[0-9]+_arm64\.tgz' | head -n1 | sed 's/tailscale_\(.*\)_arm64\.tgz/\1/')
@@ -70,7 +70,7 @@ echo "→ Compressing binaries with UPX --best --lzma..."
 upx --best --lzma tailscale >/dev/null
 upx --best --lzma tailscaled >/dev/null
 
-# 3. 复制到仓库根目录下的 files/ （最可靠方式）
+# 3. 复制到 files/ 目录（已验证成功）
 echo "→ Copying Tailscale files to files/ directory..."
 
 mkdir -p "${GITHUB_WORKSPACE}/files/usr/sbin"
@@ -122,9 +122,11 @@ EOF
 
 chmod +x "${GITHUB_WORKSPACE}/files/etc/init.d/tailscale"
 
-# 5. 创建 uci-defaults（防火墙 + 接口）
-cat > "${GITHUB_WORKSPACE}/files/etc/uci-defaults/99-tailscale-firewall" << 'EOF'
+# 5. 创建 uci-defaults 脚本（关键修复：不在这里执行 uci，只创建文件）
+cat > "${GITHUB_WORKSPACE}/files/etc/uci-defaults/99-tailscale-firewall" << 'UCI_EOF'
 #!/bin/sh
+
+echo "Applying Tailscale firewall and network settings..."
 
 # 创建 Tailscale 接口
 uci -q batch <<-EOF
@@ -162,7 +164,7 @@ uci -q batch <<-EOF
     commit firewall
 EOF
 
-# 放行 WAN 41641 端口
+# 放行 WAN UDP 41641 端口
 uci -q batch <<-EOF
     delete firewall.tailscale_wan_port
     set firewall.tailscale_wan_port=rule
@@ -175,13 +177,13 @@ uci -q batch <<-EOF
     commit firewall
 EOF
 
-echo "Tailscale firewall and network configured"
-EOF
+echo "Tailscale firewall and network configuration applied successfully."
+UCI_EOF
 
 chmod +x "${GITHUB_WORKSPACE}/files/etc/uci-defaults/99-tailscale-firewall"
 
-# 清理
+# 清理临时文件
 cd /tmp
 rm -rf "tailscale_${TS_VERSION}_arm64" "tailscale_${TS_VERSION}_arm64.tgz"
 
-echo "========== Tailscale integration completed (v${TS_VERSION}) =========="
+echo "========== Tailscale integration completed successfully (v${TS_VERSION}) =========="
