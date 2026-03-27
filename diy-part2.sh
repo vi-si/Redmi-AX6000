@@ -195,3 +195,11 @@ cd /tmp
 rm -rf "tailscale_${TS_VERSION}_arm64" "tailscale_${TS_VERSION}_arm64.tgz"
 
 echo "========== Tailscale integration completed (v${TS_VERSION}) with firewall zone =========="
+
+
+# 启用并启动服务
+# /etc/init.d/tailscale enable
+# /etc/init.d/tailscale start
+
+# tailscale 命令登录
+# tailscale up --accept-dns=false --netfilter-mode=off
