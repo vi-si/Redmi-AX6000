@@ -40,9 +40,9 @@ mv -f /tmp/GeoSite.dat feeds/luci/applications/luci-app-openclash/root/etc/openc
 
 
 # ===============================================================
-# Tailscale - 按 Meta Core 风格集成（arm64 + UPX + 完整防火墙）
+# Tailscale - 修复版（使用 GITHUB_WORKSPACE/files 目录，解决路径问题）
 # ===============================================================
-echo "========== Starting Tailscale integration (arm64) - Meta Core style =========="
+echo "========== Starting Tailscale integration (arm64) - Fixed Version =========="
 
 # 1. 获取最新稳定版本
 TS_VERSION=$(curl -s https://pkgs.tailscale.com/stable/ | grep -oE 'tailscale_[0-9]+\.[0-9]+\.[0-9]+_arm64\.tgz' | head -n1 | sed 's/tailscale_\(.*\)_arm64\.tgz/\1/')
@@ -54,7 +54,7 @@ fi
 
 echo "→ Using Tailscale version: ${TS_VERSION}"
 
-# 2. 下载、解压、UPX 强力压缩（和 Meta Core 一样风格）
+# 2. 下载、解压、UPX 压缩
 cd /tmp
 wget -q --show-progress "https://pkgs.tailscale.com/stable/tailscale_${TS_VERSION}_arm64.tgz" -O "tailscale_${TS_VERSION}_arm64.tgz"
 
@@ -70,26 +70,25 @@ echo "→ Compressing binaries with UPX --best --lzma..."
 upx --best --lzma tailscale >/dev/null
 upx --best --lzma tailscaled >/dev/null
 
-# 3. 复制到 package/base-files/files/ （最可靠方式）
-echo "→ Copying Tailscale binaries to base-files..."
-mkdir -p "${TOPDIR}/package/base-files/files/usr/sbin"
-mkdir -p "${TOPDIR}/package/base-files/files/var/lib/tailscale"
+# 3. 复制到仓库根目录下的 files/ （最可靠方式）
+echo "→ Copying Tailscale files to files/ directory..."
 
-cp -f tailscale "${TOPDIR}/package/base-files/files/usr/sbin/tailscale"
-cp -f tailscaled "${TOPDIR}/package/base-files/files/usr/sbin/tailscaled"
+mkdir -p "${GITHUB_WORKSPACE}/files/usr/sbin"
+mkdir -p "${GITHUB_WORKSPACE}/files/var/lib/tailscale"
+mkdir -p "${GITHUB_WORKSPACE}/files/etc/init.d"
+mkdir -p "${GITHUB_WORKSPACE}/files/etc/uci-defaults"
 
-chmod +x "${TOPDIR}/package/base-files/files/usr/sbin/tailscale"
-chmod +x "${TOPDIR}/package/base-files/files/usr/sbin/tailscaled"
+cp -f tailscale "${GITHUB_WORKSPACE}/files/usr/sbin/tailscale"
+cp -f tailscaled "${GITHUB_WORKSPACE}/files/usr/sbin/tailscaled"
 
-# 显示文件大小，方便在 Actions 日志中确认是否成功
+chmod +x "${GITHUB_WORKSPACE}/files/usr/sbin/tailscale"
+chmod +x "${GITHUB_WORKSPACE}/files/usr/sbin/tailscaled"
+
 echo "→ Binary sizes:"
-ls -lh "${TOPDIR}/package/base-files/files/usr/sbin/tailscale"*
-echo "→ Binaries placed successfully"
+ls -lh "${GITHUB_WORKSPACE}/files/usr/sbin/tailscale"*
 
-# 4. 创建 init.d 服务脚本（带内存优化）
-mkdir -p "${TOPDIR}/package/base-files/files/etc/init.d"
-
-cat > "${TOPDIR}/package/base-files/files/etc/init.d/tailscale" << 'EOF'
+# 4. 创建 init.d 服务脚本
+cat > "${GITHUB_WORKSPACE}/files/etc/init.d/tailscale" << 'EOF'
 #!/bin/sh /etc/rc.common
 
 START=99
@@ -121,16 +120,13 @@ service_triggers() {
 }
 EOF
 
-chmod +x "${TOPDIR}/package/base-files/files/etc/init.d/tailscale"
+chmod +x "${GITHUB_WORKSPACE}/files/etc/init.d/tailscale"
 
-# 5. 创建 uci-defaults（网络接口 + 防火墙 Zone + 41641 端口）
-mkdir -p "${TOPDIR}/package/base-files/files/etc/uci-defaults"
-
-cat > "${TOPDIR}/package/base-files/files/etc/uci-defaults/99-tailscale-firewall" << 'EOF'
+# 5. 创建 uci-defaults（防火墙 + 接口）
+cat > "${GITHUB_WORKSPACE}/files/etc/uci-defaults/99-tailscale-firewall" << 'EOF'
 #!/bin/sh
-# Tailscale 自动配置
 
-# 1. 创建 Tailscale 接口
+# 创建 Tailscale 接口
 uci -q batch <<-EOF
     delete network.tailscale
     set network.tailscale=interface
@@ -140,7 +136,7 @@ uci -q batch <<-EOF
     commit network
 EOF
 
-# 2. 创建 Tailscale Zone + 转发规则
+# 创建 Tailscale Zone + 转发规则
 uci -q batch <<-EOF
     delete firewall.tailscale_zone
     set firewall.tailscale_zone=zone
@@ -166,7 +162,7 @@ uci -q batch <<-EOF
     commit firewall
 EOF
 
-# 3. 放行 WAN UDP 41641 端口
+# 放行 WAN 41641 端口
 uci -q batch <<-EOF
     delete firewall.tailscale_wan_port
     set firewall.tailscale_wan_port=rule
@@ -179,13 +175,13 @@ uci -q batch <<-EOF
     commit firewall
 EOF
 
-echo "Tailscale firewall and network configured via uci-defaults"
+echo "Tailscale firewall and network configured"
 EOF
 
-chmod +x "${TOPDIR}/package/base-files/files/etc/uci-defaults/99-tailscale-firewall"
+chmod +x "${GITHUB_WORKSPACE}/files/etc/uci-defaults/99-tailscale-firewall"
 
-# 清理临时文件
+# 清理
 cd /tmp
 rm -rf "tailscale_${TS_VERSION}_arm64" "tailscale_${TS_VERSION}_arm64.tgz"
 
-echo "========== Tailscale integration completed successfully (v${TS_VERSION}) =========="
+echo "========== Tailscale integration completed (v${TS_VERSION}) =========="
