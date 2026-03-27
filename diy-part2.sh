@@ -40,11 +40,12 @@ mv -f /tmp/GeoSite.dat feeds/luci/applications/luci-app-openclash/root/etc/openc
 
 
 # ===============================================================
-# Tailscale - 优化版集成（arm64 + UPX + 可靠路径）
+# Tailscale - 优化版集成（arm64 + UPX + 完整防火墙 Zone + 接口配置）
+# 适配你手动设置的 tailscale Zone（lan + wan 转发）
 # ===============================================================
-echo "========== Starting optimized Tailscale integration (arm64) =========="
+echo "========== Starting Tailscale integration (arm64) =========="
 
-# 1. 获取最新稳定版本（自动，避免手动更新）
+# 1. 获取最新稳定版本
 TS_VERSION=$(curl -s https://pkgs.tailscale.com/stable/ | grep -oE 'tailscale_[0-9]+\.[0-9]+\.[0-9]+_arm64\.tgz' | head -n1 | sed 's/tailscale_\(.*\)_arm64\.tgz/\1/')
 
 if [ -z "$TS_VERSION" ]; then
@@ -54,14 +55,13 @@ fi
 
 echo "→ Using Tailscale version: ${TS_VERSION}"
 
-# 2. 下载并解压到临时目录
+# 2. 下载、解压、UPX 强力压缩
 cd /tmp
 wget -q --show-progress "https://pkgs.tailscale.com/stable/tailscale_${TS_VERSION}_arm64.tgz" -O "tailscale_${TS_VERSION}_arm64.tgz"
 
 tar -xzf "tailscale_${TS_VERSION}_arm64.tgz"
 cd "tailscale_${TS_VERSION}_arm64"
 
-# 3. UPX 强力压缩（大幅减小二进制体积）
 if ! command -v upx >/dev/null 2>&1; then
     echo "→ Installing upx-ucl for compression..."
     apt-get update -qq && apt-get install -y upx-ucl
@@ -71,7 +71,7 @@ echo "→ Compressing binaries with UPX --best --lzma..."
 upx --best --lzma tailscale >/dev/null
 upx --best --lzma tailscaled >/dev/null
 
-# 4. 复制到 package/base-files/files/ （最推荐的 Actions-OpenWrt 路径）
+# 3. 复制二进制文件
 mkdir -p "${TOPDIR}/package/base-files/files/usr/sbin"
 mkdir -p "${TOPDIR}/package/base-files/files/var/lib/tailscale"
 
@@ -81,9 +81,9 @@ cp -f tailscaled "${TOPDIR}/package/base-files/files/usr/sbin/tailscaled"
 chmod +x "${TOPDIR}/package/base-files/files/usr/sbin/tailscale"
 chmod +x "${TOPDIR}/package/base-files/files/usr/sbin/tailscaled"
 
-echo "→ Binaries placed in package/base-files/files/usr/sbin/"
+echo "→ Binaries placed in /usr/sbin/"
 
-# 5. 创建优化后的 init.d 服务脚本
+# 4. 创建 init.d 服务脚本（带内存优化）
 mkdir -p "${TOPDIR}/package/base-files/files/etc/init.d"
 
 cat > "${TOPDIR}/package/base-files/files/etc/init.d/tailscale" << 'EOF'
@@ -94,9 +94,7 @@ USE_PROCD=1
 PROG=/usr/sbin/tailscaled
 
 start_service() {
-    # 确保状态文件和 socket 目录存在（持久化认证信息）
-    mkdir -p /var/lib/tailscale
-    mkdir -p /var/run/tailscale
+    mkdir -p /var/lib/tailscale /var/run/tailscale
 
     procd_open_instance
     procd_set_param command "$PROG" \
@@ -104,9 +102,7 @@ start_service() {
         --socket=/var/run/tailscale/tailscaled.sock \
         --port=41641
 
-    # 内存优化（适合路由器）
     procd_set_param env GOGC=10
-
     procd_set_param respawn
     procd_set_param stdout 1
     procd_set_param stderr 1
@@ -124,12 +120,78 @@ EOF
 
 chmod +x "${TOPDIR}/package/base-files/files/etc/init.d/tailscale"
 
-echo "→ Init script created with persistent state and memory optimization"
+# 5. 创建 uci-defaults（自动配置网络接口 + 防火墙 Zone + 转发规则）
+mkdir -p "${TOPDIR}/package/base-files/files/etc/uci-defaults"
+
+cat > "${TOPDIR}/package/base-files/files/etc/uci-defaults/99-tailscale-firewall" << 'EOF'
+#!/bin/sh
+
+# 1. 创建 Tailscale 网络接口（自动关联 tailscale0 设备）
+uci -q batch <<-EOF
+    delete network.tailscale
+    set network.tailscale=interface
+    set network.tailscale.proto='none'
+    set network.tailscale.device='tailscale0'
+    set network.tailscale.auto='1'
+    commit network
+EOF
+
+# 2. 创建/更新 Tailscale 防火墙 Zone（匹配你手动设置的风格）
+uci -q batch <<-EOF
+    delete firewall.tailscale_zone
+    set firewall.tailscale_zone=zone
+    set firewall.tailscale_zone.name='tailscale'
+    add_list firewall.tailscale_zone.network='tailscale'
+    set firewall.tailscale_zone.input='ACCEPT'
+    set firewall.tailscale_zone.output='ACCEPT'
+    set firewall.tailscale_zone.forward='ACCEPT'
+    set firewall.tailscale_zone.masq='1'
+    set firewall.tailscale_zone.mtu_fix='1'
+    set firewall.tailscale_zone.enabled='1'
+    commit firewall
+EOF
+
+# 3. 添加转发规则（tailscale ↔ lan 双向 + 可选 tailscale → wan）
+uci -q batch <<-EOF
+    delete firewall.tailscale_to_lan
+    set firewall.tailscale_to_lan=forwarding
+    set firewall.tailscale_to_lan.src='tailscale'
+    set firewall.tailscale_to_lan.dest='lan'
+
+    delete firewall.lan_to_tailscale
+    set firewall.lan_to_tailscale=forwarding
+    set firewall.lan_to_tailscale.src='lan'
+    set firewall.lan_to_tailscale.dest='tailscale'
+
+    # 如果需要把本机作为 Exit Node（Tailscale 设备通过它上网），取消下面注释
+    # delete firewall.tailscale_to_wan
+    # set firewall.tailscale_to_wan=forwarding
+    # set firewall.tailscale_to_wan.src='tailscale'
+    # set firewall.tailscale_to_wan.dest='wan'
+
+    commit firewall
+EOF
+
+# 4. 放行 WAN 输入 UDP 41641 端口（提升直连成功率）
+uci -q batch <<-EOF
+    delete firewall.tailscale_wan_port
+    set firewall.tailscale_wan_port=rule
+    set firewall.tailscale_wan_port.name='Allow-Tailscale-WAN'
+    set firewall.tailscale_wan_port.src='wan'
+    set firewall.tailscale_wan_port.proto='udp'
+    set firewall.tailscale_wan_port.dest_port='41641'
+    set firewall.tailscale_wan_port.target='ACCEPT'
+    set firewall.tailscale_wan_port.enabled='1'
+    commit firewall
+EOF
+
+echo "Tailscale firewall zone, interface and rules configured via uci-defaults"
+EOF
+
+chmod +x "${TOPDIR}/package/base-files/files/etc/uci-defaults/99-tailscale-firewall"
 
 # 清理临时文件
 cd /tmp
 rm -rf "tailscale_${TS_VERSION}_arm64" "tailscale_${TS_VERSION}_arm64.tgz"
 
-echo "========== Tailscale integration completed successfully (v${TS_VERSION}) =========="
-
-#
+echo "========== Tailscale integration completed (v${TS_VERSION}) with firewall zone =========="
