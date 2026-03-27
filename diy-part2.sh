@@ -202,4 +202,8 @@ echo "========== Tailscale integration completed (v${TS_VERSION}) with firewall 
 # /etc/init.d/tailscale start
 
 # tailscale 命令登录
-# tailscale up --accept-dns=false --netfilter-mode=off
+# tailscale up --accept-dns=false --netfilter-mode=off --advertise-routes=192.168.6.0/24
+
+# 重启防火墙验证：
+# /etc/init.d/firewall restart
+# uci show firewall | grep -E 'tailscale|Allow-Tailscale'
