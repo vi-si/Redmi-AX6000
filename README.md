@@ -32,20 +32,13 @@ Github 地址修改 https://testingcf.jsdelivr.net/
       119.29.29.29
       223.5.5.5
 
-
 ✅ 启用 TCP 并发
 TCP Keep-alive 间隔（s）1800
 
 ✅ 启用 GeoIP Dat 版数据库
 ✅ 启用流量（域名）探测
 
-
-
 网络加速设置
-
 全锥形 NAT → XT_FULLCONE_NAT（更佳的兼容性）
 
-
-
-exit 0
 ```
